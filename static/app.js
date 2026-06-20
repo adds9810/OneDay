@@ -4,6 +4,7 @@ const todoForm = document.querySelector("#todoForm");
 const todoInput = document.querySelector("#todoInput");
 const todoList = document.querySelector("#todoList");
 const todoCount = document.querySelector("#todoCount");
+const todoEmptyHint = document.querySelector("#todoEmptyHint");
 
 const carryoverCard = document.querySelector("#carryoverCard");
 const carryoverText = document.querySelector("#carryoverText");
@@ -23,9 +24,22 @@ const adviceText = document.querySelector("#adviceText");
 
 const retrospectiveForm = document.querySelector("#retrospectiveForm");
 const retrospectiveInput = document.querySelector("#retrospectiveInput");
+const retrospectiveModeHint = document.querySelector("#retrospectiveModeHint");
+const retrospectiveSubmitBtn = retrospectiveForm?.querySelector(
+  "button[type='submit']",
+);
 const retrospectiveResult = document.querySelector("#retrospectiveResult");
 const analysisText = document.querySelector("#analysisText");
 const cheerText = document.querySelector("#cheerText");
+const reanalyzeBtn = document.querySelector("#reanalyzeBtn");
+const retrospectiveConfirmModal = document.querySelector(
+  "#retrospectiveConfirmModal",
+);
+const retrospectiveConfirmText = document.querySelector(
+  "#retrospectiveConfirmText",
+);
+const retrospectiveConfirmYes = document.querySelector("#retrospectiveConfirmYes");
+const retrospectiveConfirmNo = document.querySelector("#retrospectiveConfirmNo");
 const notice = document.querySelector("#notice");
 const todayDate = document.querySelector("#todayDate");
 
@@ -37,6 +51,50 @@ const editCancelBtn = document.querySelector("#editCancelBtn");
 
 let currentTodos = [];
 let editingTodoId = null;
+let hasExistingRetrospective = false;
+let pendingRetrospectiveRegenerateAi = false;
+
+function updateRetrospectiveMode(hasExisting) {
+  hasExistingRetrospective = hasExisting;
+
+  if (retrospectiveSubmitBtn) {
+    retrospectiveSubmitBtn.textContent = hasExisting
+      ? "정리 내용 저장"
+      : "하루 정리하기";
+  }
+
+  if (retrospectiveModeHint) {
+    retrospectiveModeHint.textContent = hasExisting
+      ? "수정 저장 시 기존 AI 조언은 유지됩니다. 필요하면 아래에서 AI 다시 분석하기를 눌러 주세요."
+      : "처음 작성하면 AI 조언과 응원 메시지가 생성됩니다.";
+  }
+}
+
+function updateRetrospectiveSubmitState() {
+  if (!retrospectiveSubmitBtn || !retrospectiveInput) {
+    return;
+  }
+
+  retrospectiveSubmitBtn.disabled = retrospectiveInput.value.trim().length === 0;
+}
+
+function openRetrospectiveConfirm(regenerateAi) {
+  pendingRetrospectiveRegenerateAi = regenerateAi;
+  if (retrospectiveConfirmText) {
+    retrospectiveConfirmText.textContent = hasExistingRetrospective
+      ? "입력한 수정 내용으로 정리를 저장할까요?"
+      : "입력한 내용으로 하루 정리를 마무리할까요?";
+  }
+  if (retrospectiveConfirmModal) {
+    retrospectiveConfirmModal.hidden = false;
+  }
+}
+
+function closeRetrospectiveConfirm() {
+  if (retrospectiveConfirmModal) {
+    retrospectiveConfirmModal.hidden = true;
+  }
+}
 
 function showNotice(message, type = "ok") {
   notice.textContent = message;
@@ -79,6 +137,9 @@ function renderTodos(todos) {
   currentTodos = todos;
   todoList.innerHTML = "";
   todoCount.textContent = `${todos.length} / 3`;
+  if (todoEmptyHint) {
+    todoEmptyHint.hidden = todos.length > 0;
+  }
   updateAdviceButton(todos.length);
 
   for (const todo of todos) {
@@ -130,7 +191,7 @@ function renderTodos(todos) {
 }
 
 function isAfterThreePm() {
-  return new Date().getHours() >= 13; // 임시: 확인용 (원래 15)
+  return new Date().getHours() >= 15;
 }
 
 function renderTodayDate() {
@@ -215,11 +276,66 @@ async function loadTodos() {
 async function loadTodayRetrospective() {
   try {
     const data = await request("/api/retrospective/today");
+    retrospectiveInput.value = data.content || "";
+    updateRetrospectiveSubmitState();
     retrospectiveResult.hidden = false;
     analysisText.textContent = data.analysis;
     cheerText.textContent = data.cheer_message;
+    updateRetrospectiveMode(true);
+    if (reanalyzeBtn) {
+      reanalyzeBtn.hidden = false;
+    }
   } catch {
+    retrospectiveInput.value = "";
+    updateRetrospectiveSubmitState();
     retrospectiveResult.hidden = true;
+    updateRetrospectiveMode(false);
+    if (reanalyzeBtn) {
+      reanalyzeBtn.hidden = true;
+    }
+  }
+}
+
+async function submitRetrospective(regenerateAi) {
+  if (!isAfterThreePm()) {
+    showNotice("회고는 오후 3시 이후에 작성할 수 있어요.", "error");
+    return;
+  }
+  if (currentTodos.length < 1) {
+    showNotice("회고 전 투두를 최소 1개 등록해 주세요.", "error");
+    return;
+  }
+
+  const content = retrospectiveInput.value.trim();
+  if (!content) {
+    showNotice("회고 내용을 입력해 주세요.", "error");
+    return;
+  }
+
+  const hadExistingBeforeSave = hasExistingRetrospective;
+
+  const data = await request("/api/retrospective", {
+    method: "POST",
+    body: JSON.stringify({
+      content,
+      regenerate_ai: regenerateAi,
+    }),
+  });
+
+  retrospectiveResult.hidden = false;
+  analysisText.textContent = data.analysis;
+  cheerText.textContent = data.cheer_message;
+  if (reanalyzeBtn) {
+    reanalyzeBtn.hidden = false;
+  }
+  updateRetrospectiveMode(true);
+
+  if (data.ai_refreshed && !hadExistingBeforeSave) {
+    showNotice("하루 정리가 저장되었고 AI 조언이 생성되었습니다.");
+  } else if (data.ai_refreshed) {
+    showNotice("AI 조언을 새로 분석했습니다.");
+  } else {
+    showNotice("회고 내용을 수정했습니다. 기존 AI 조언은 유지됩니다.");
   }
 }
 
@@ -280,33 +396,42 @@ adviceForm?.addEventListener("submit", async (event) => {
 
 retrospectiveForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (retrospectiveInput.value.trim().length === 0) {
+    showNotice("회고 내용을 입력해 주세요.", "error");
+    return;
+  }
+
+  openRetrospectiveConfirm(false);
+});
+
+reanalyzeBtn?.addEventListener("click", async () => {
   try {
-    if (!isAfterThreePm()) {
-      showNotice("회고는 오후 3시 이후에 작성할 수 있어요.", "error");
-      return;
-    }
-    if (currentTodos.length < 1) {
-      showNotice("회고 전 투두를 최소 1개 등록해 주세요.", "error");
-      return;
-    }
-
-    const content = retrospectiveInput.value.trim();
-    if (!content) {
-      showNotice("회고 내용을 입력해 주세요.", "error");
-      return;
-    }
-
-    const data = await request("/api/retrospective", {
-      method: "POST",
-      body: JSON.stringify({ content }),
-    });
-
-    retrospectiveResult.hidden = false;
-    analysisText.textContent = data.analysis;
-    cheerText.textContent = data.cheer_message;
-    showNotice("회고 조언이 완료되었습니다.");
+    await submitRetrospective(true);
   } catch (error) {
     showNotice(error.message, "error");
+  }
+});
+
+retrospectiveInput?.addEventListener("input", () => {
+  updateRetrospectiveSubmitState();
+});
+
+retrospectiveConfirmYes?.addEventListener("click", async () => {
+  try {
+    closeRetrospectiveConfirm();
+    await submitRetrospective(pendingRetrospectiveRegenerateAi);
+  } catch (error) {
+    showNotice(error.message, "error");
+  }
+});
+
+retrospectiveConfirmNo?.addEventListener("click", () => {
+  closeRetrospectiveConfirm();
+});
+
+retrospectiveConfirmModal?.addEventListener("click", (event) => {
+  if (event.target === retrospectiveConfirmModal) {
+    closeRetrospectiveConfirm();
   }
 });
 
@@ -381,6 +506,7 @@ editInput?.addEventListener("keypress", async (event) => {
   try {
     renderTodayDate();
     renderTimeGate();
+    updateRetrospectiveSubmitState();
     await loadTodos();
     await loadCarryoverPrompt();
     await loadTodayRetrospective();

@@ -51,6 +51,10 @@
           오늘의 할 일은 삭제 대신 수정 중심으로 관리돼요. 꼭 해야 할 일을
           신중하게 적어 주세요.
         </p>
+        <div id="todoEmptyHint" class="empty-state" hidden>
+          <strong>아직 오늘의 투두가 비어 있어요</strong>
+          <p>오늘 꼭 끝내고 싶은 가장 중요한 할 일 1개부터 적어보세요.</p>
+        </div>
 
         <ul id="todoList" class="todo-list"></ul>
 
@@ -90,7 +94,10 @@
               placeholder="오늘 무엇이 잘 되었고, 무엇이 어려웠는지 자유롭게 적어보세요."
               required
             ></textarea>
-            <button type="submit">하루 정리하기</button>
+            <p id="retrospectiveModeHint" class="time-note">
+              처음 작성하면 AI 조언과 응원 메시지가 생성됩니다.
+            </p>
+            <button type="submit" disabled>하루 정리하기</button>
           </form>
 
           <div id="retrospectiveResult" class="result" hidden>
@@ -98,6 +105,11 @@
             <p id="analysisText"></p>
             <h3>응원 메시지</h3>
             <p id="cheerText"></p>
+            <div class="action-row">
+              <button id="reanalyzeBtn" type="button" class="secondary">
+                AI 다시 분석하기
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -117,6 +129,22 @@
           <div class="modal-actions">
             <button id="editConfirmBtn" type="button">수정</button>
             <button id="editCancelBtn" type="button" class="secondary">취소</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 회고 저장 확인 모달 -->
+      <div id="retrospectiveConfirmModal" class="modal" hidden>
+        <div class="modal-content">
+          <h3>저장 확인</h3>
+          <p id="retrospectiveConfirmText" class="time-note">
+            입력한 내용으로 하루 정리를 마무리할까요?
+          </p>
+          <div class="modal-actions">
+            <button id="retrospectiveConfirmYes" type="button">예</button>
+            <button id="retrospectiveConfirmNo" type="button" class="secondary">
+              아니요
+            </button>
           </div>
         </div>
       </div>

@@ -29,8 +29,29 @@ function renderHistory(days) {
 
   if (!days.length) {
     const li = document.createElement("li");
-    li.className = "history-item";
-    li.textContent = "아직 기록이 없습니다.";
+    li.className = "history-item history-empty";
+
+    const icon = document.createElement("div");
+    icon.className = "history-empty-icon";
+    icon.textContent = "🗂️";
+
+    const title = document.createElement("strong");
+    title.textContent = "아직 실행 기록이 없어요";
+
+    const desc = document.createElement("p");
+    desc.className = "time-note";
+    desc.textContent =
+      "오늘의 할 일을 1개 등록하고 완료하면 첫 히스토리가 만들어집니다.";
+
+    const cta = document.createElement("a");
+    cta.href = "./index.html";
+    cta.className = "history-empty-cta";
+    cta.textContent = "첫 기록 만들러 가기";
+
+    li.appendChild(icon);
+    li.appendChild(title);
+    li.appendChild(desc);
+    li.appendChild(cta);
     historyList.appendChild(li);
     return;
   }

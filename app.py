@@ -45,7 +45,7 @@ def _safe_text(value: Any, max_len: int) -> str:
 
 
 def _after_three_pm() -> bool:
-    return datetime.now().hour >= 13  # 임시: 확인용 (원래 15)
+    return datetime.now().hour >= 15
 
 
 @app.get("/api/health")
@@ -134,15 +134,27 @@ def create_retrospective() -> Any:
 
         payload = request.get_json(silent=True) or {}
         content = _safe_text(payload.get("content"), 2000)
+        regenerate_ai = bool(payload.get("regenerate_ai", False))
 
-        todos = get_todos()
-        ai_result = analyze_retrospective(content, todos)
+        existing = get_today_retrospective()
+        should_refresh_ai = existing is None or regenerate_ai
+
+        if should_refresh_ai:
+            todos = get_todos()
+            ai_result = analyze_retrospective(content, todos)
+        else:
+            # 회고 본문만 수정할 때는 기존 분석/응원 메시지를 유지합니다.
+            ai_result = {
+                "analysis": existing["analysis"],
+                "cheer_message": existing["cheer_message"],
+            }
 
         saved = save_retrospective(
             content=content,
             analysis=ai_result["analysis"],
             cheer_message=ai_result["cheer_message"],
         )
+        saved["ai_refreshed"] = should_refresh_ai
         return jsonify(saved), 201
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
