@@ -376,7 +376,11 @@ button.is-loading::after {
 }
 
 .advice-before {
-  background: linear-gradient(135deg, rgba(102, 112, 133, 0.08), rgba(255, 255, 255, 0.96));
+  background: linear-gradient(
+    135deg,
+    rgba(102, 112, 133, 0.08),
+    rgba(255, 255, 255, 0.96)
+  );
 }
 
 .advice-before .advice-comparison-label {
@@ -385,7 +389,11 @@ button.is-loading::after {
 }
 
 .advice-after {
-  background: linear-gradient(135deg, rgba(15, 138, 120, 0.14), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(
+    135deg,
+    rgba(15, 138, 120, 0.14),
+    rgba(255, 255, 255, 0.98)
+  );
   border-color: rgba(15, 138, 120, 0.22);
 }
 

@@ -10,7 +10,8 @@ const savedApiBase = (localStorage.getItem("oneday-api-base") || "").trim();
 const API_BASE =
   queryApiBase ||
   savedApiBase ||
-  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  (window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
     ? "http://localhost:8080"
     : `${window.location.protocol}//${window.location.host}`);
 
@@ -67,8 +68,12 @@ const retrospectiveConfirmModal = document.querySelector(
 const retrospectiveConfirmText = document.querySelector(
   "#retrospectiveConfirmText",
 );
-const retrospectiveConfirmYes = document.querySelector("#retrospectiveConfirmYes");
-const retrospectiveConfirmNo = document.querySelector("#retrospectiveConfirmNo");
+const retrospectiveConfirmYes = document.querySelector(
+  "#retrospectiveConfirmYes",
+);
+const retrospectiveConfirmNo = document.querySelector(
+  "#retrospectiveConfirmNo",
+);
 const notice = document.querySelector("#notice");
 const todayDate = document.querySelector("#todayDate");
 
@@ -134,7 +139,10 @@ function setSavedPriorityMap(priorityMap) {
   if (!priorityMap || Object.keys(priorityMap).length === 0) {
     localStorage.removeItem(getPriorityMapStorageKey());
   } else {
-    localStorage.setItem(getPriorityMapStorageKey(), JSON.stringify(priorityMap));
+    localStorage.setItem(
+      getPriorityMapStorageKey(),
+      JSON.stringify(priorityMap),
+    );
   }
 }
 
@@ -149,7 +157,12 @@ function buildPriorityMap(todos, savedMap) {
 
   for (const todo of todos) {
     const rank = Number(savedMap[String(todo.id)]);
-    if (Number.isInteger(rank) && rank >= 1 && rank <= count && !usedRanks.has(rank)) {
+    if (
+      Number.isInteger(rank) &&
+      rank >= 1 &&
+      rank <= count &&
+      !usedRanks.has(rank)
+    ) {
       priorityMap[todo.id] = rank;
       usedRanks.add(rank);
     }
@@ -192,7 +205,8 @@ function updateRetrospectiveSubmitState() {
     return;
   }
 
-  retrospectiveSubmitBtn.disabled = retrospectiveInput.value.trim().length === 0;
+  retrospectiveSubmitBtn.disabled =
+    retrospectiveInput.value.trim().length === 0;
 }
 
 function openRetrospectiveConfirm(regenerateAi) {
@@ -229,7 +243,8 @@ async function request(path, options = {}) {
     response = await fetch(`${activeApiBase}${path}`, fetchOptions);
   } catch (error) {
     const canRecoverLocal =
-      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1") &&
       activeApiBase !== "http://localhost:8080";
 
     if (canRecoverLocal) {
@@ -402,7 +417,8 @@ function renderTodos(todos) {
 }
 
 function isAfterThreePm() {
-  const forcedRaw = queryForcePm || localStorage.getItem("oneday-force-pm") || "";
+  const forcedRaw =
+    queryForcePm || localStorage.getItem("oneday-force-pm") || "";
   const forced = forcedRaw.trim().toLowerCase();
 
   if (["1", "true", "yes", "on"].includes(forced)) {
@@ -581,7 +597,10 @@ async function submitRetrospective(regenerateAi) {
     if (retrospectiveRetryBtn) {
       retrospectiveRetryBtn.hidden = false;
     }
-    showNotice(error.message || "AI 응답에 실패했습니다. 다시 시도해 주세요.", "error");
+    showNotice(
+      error.message || "AI 응답에 실패했습니다. 다시 시도해 주세요.",
+      "error",
+    );
   } finally {
     clearTimeout(delayTimer);
     restoreButton();
@@ -644,11 +663,15 @@ async function submitAdvice(content) {
     showNotice("우선순위 추천을 받았습니다.");
   } catch (error) {
     adviceResult.hidden = false;
-    adviceText.textContent = "AI 응답을 가져오지 못했습니다. 다시 시도해 주세요.";
+    adviceText.textContent =
+      "AI 응답을 가져오지 못했습니다. 다시 시도해 주세요.";
     if (adviceRetryBtn) {
       adviceRetryBtn.hidden = false;
     }
-    showNotice(error.message || "AI 응답에 실패했습니다. 다시 시도해 주세요.", "error");
+    showNotice(
+      error.message || "AI 응답에 실패했습니다. 다시 시도해 주세요.",
+      "error",
+    );
   } finally {
     clearTimeout(delayTimer);
     restoreButton();
