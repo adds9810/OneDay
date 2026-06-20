@@ -16,7 +16,44 @@ except Exception:
 
 
 def analyze_retrospective(retrospective_text: str, todos: list[dict[str, Any]]) -> dict[str, str]:
-    # Copilot SDK 연동 전, 로컬 개발용으로 동작하는 기본 분석 로직입니다.
+    # 먼저 Copilot SDK(Azure OpenAI)로 회고 분석을 시도합니다.
+    todo_lines = "\n".join(
+        f"- [{'완료' if t.get('completed') else '미완료'}] {t.get('content', '')}"
+        for t in todos
+    )
+    ai_message = _call_copilot_api(
+        system_prompt=(
+            "당신은 개인 생산성 코치입니다. "
+            "사용자의 회고와 투두 완료 현황을 바탕으로 분석과 응원 메시지를 작성하세요. "
+            "반드시 아래 형식으로만 답변하세요.\n"
+            "분석: ...\n"
+            "응원: ..."
+        ),
+        user_prompt=(
+            f"오늘의 투두 목록:\n{todo_lines or '- (투두 없음)'}\n\n"
+            f"회고 내용:\n{retrospective_text.strip()}"
+        ),
+    )
+    if ai_message:
+        lines = [line.strip() for line in ai_message.splitlines() if line.strip()]
+        analysis_line = next((line for line in lines if line.startswith("분석:")), "")
+        cheer_line = next((line for line in lines if line.startswith("응원:")), "")
+
+        analysis = analysis_line.replace("분석:", "", 1).strip() if analysis_line else ""
+        cheer_message = cheer_line.replace("응원:", "", 1).strip() if cheer_line else ""
+
+        # 형식이 달라도 사용자에게 빈 응답이 가지 않도록 전체 텍스트를 안전하게 사용합니다.
+        if not analysis and lines:
+            analysis = lines[0]
+        if not cheer_message:
+            cheer_message = lines[1] if len(lines) > 1 else "오늘의 기록을 바탕으로 내일도 한 걸음씩 나아가 봐요."
+
+        return {
+            "analysis": analysis,
+            "cheer_message": cheer_message,
+        }
+
+    # AI 호출 실패 시, 로컬 규칙 기반 기본 분석 로직으로 폴백합니다.
     completed_count = sum(1 for todo in todos if todo.get("completed"))
     total_count = len(todos)
 
