@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OneDay - 오늘 딱 3개</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="hero">
+        <h1>OneDay</h1>
+        <p>오늘 딱 필요한 일 1~3개만 끝내고, 저녁에 회고를 남겨요.</p>
+      </header>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>오늘의 투두</h2>
+          <span id="todoCount" class="badge">0 / 3</span>
+        </div>
+
+        <form id="todoForm" class="inline-form">
+          <input
+            id="todoInput"
+            type="text"
+            maxlength="120"
+            placeholder="예: 발표 자료 1차 완성"
+            required
+          />
+          <button type="submit">추가</button>
+        </form>
+
+        <ul id="todoList" class="todo-list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>저녁 회고</h2>
+        <form id="retrospectiveForm" class="stack-form">
+          <textarea
+            id="retrospectiveInput"
+            rows="6"
+            maxlength="2000"
+            placeholder="오늘 무엇이 잘 되었고, 무엇이 어려웠는지 자유롭게 적어보세요."
+            required
+          ></textarea>
+          <button type="submit">AI 분석 받기</button>
+        </form>
+
+        <div id="retrospectiveResult" class="result" hidden>
+          <h3>AI 분석</h3>
+          <p id="analysisText"></p>
+          <h3>응원 메시지</h3>
+          <p id="cheerText"></p>
+        </div>
+      </section>
+
+      <p id="notice" class="notice" aria-live="polite"></p>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
