@@ -1,11 +1,14 @@
 import os
+import asyncio
 from typing import Any, Optional
 
 try:
-    # Azure OpenAI SDK 사용 가능 여부를 런타임에 확인합니다.
-    from openai import AzureOpenAI
+    # Copilot SDK: Semantic Kernel을 사용하여 Azure OpenAI와 통합합니다.
+    from semantic_kernel import Kernel
+    from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+    SEMANTIC_KERNEL_AVAILABLE = True
 except Exception:
-    AzureOpenAI = None
+    SEMANTIC_KERNEL_AVAILABLE = False
 
 
 def analyze_retrospective(retrospective_text: str, todos: list[dict[str, Any]]) -> dict[str, str]:
@@ -37,34 +40,56 @@ def analyze_retrospective(retrospective_text: str, todos: list[dict[str, Any]]) 
     }
 
 
-def _call_azure_openai(system_prompt: str, user_prompt: str) -> Optional[str]:
+async def _call_copilot_api_async(system_prompt: str, user_prompt: str) -> Optional[str]:
     endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "").strip()
     api_key = os.getenv("AZURE_OPENAI_API_KEY", "").strip()
     deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "").strip()
 
-    if not endpoint or not api_key or not deployment or AzureOpenAI is None:
+    if not endpoint or not api_key or not deployment or not SEMANTIC_KERNEL_AVAILABLE:
         return None
 
     try:
-        client = AzureOpenAI(
+        # Semantic Kernel을 사용한 Copilot SDK 연동
+        kernel = Kernel()
+        
+        # Azure OpenAI 서비스를 커널에 추가
+        chat_completion = AzureChatCompletion(
+            deployment_name=deployment,
+            endpoint=endpoint,
             api_key=api_key,
             api_version="2024-02-15-preview",
-            azure_endpoint=endpoint,
         )
-
-        response = client.chat.completions.create(
-            model=deployment,
-            temperature=0.5,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+        kernel.add_service(chat_completion)
+        
+        # 프롬프트 생성 및 실행
+        prompt_template = f"{system_prompt}\n\n사용자: {user_prompt}\n어시스턴트:"
+        
+        # invoke를 사용한 동기 호출
+        response = kernel.invoke_prompt(
+            prompt_template,
+            settings={
+                "max_tokens": 500,
+                "temperature": 0.5,
+            }
         )
-
-        content = response.choices[0].message.content if response.choices else None
-        return (content or "").strip() or None
+        
+        content = str(response).strip() if response else None
+        return content if content else None
     except Exception:
         return None
+
+
+def _call_copilot_api(system_prompt: str, user_prompt: str) -> Optional[str]:
+    """동기 래퍼: Copilot SDK를 Flask 동기 환경에서 호출합니다."""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(_call_copilot_api_async(system_prompt, user_prompt))
+        return result
+    except Exception:
+        return None
+    finally:
+        loop.close()
 
 
 def generate_afternoon_advice(
@@ -87,7 +112,7 @@ def generate_afternoon_advice(
 
     if total_count >= 2 and pending:
         # 2개 이상 투두가 있을 때 우선순위 추천 모드입니다.
-        ai_message = _call_azure_openai(
+        ai_message = _call_copilot_api(
             system_prompt=(
                 "당신은 개인 생산성 코치입니다. "
                 "미완료 할 일들의 우선순위를 추천하고 각 항목에 간단한 이유를 붙여 "
@@ -112,7 +137,7 @@ def generate_afternoon_advice(
 
     elif total_count == 1:
         # 투두가 1개일 때는 단순 응원 메시지입니다.
-        ai_message = _call_azure_openai(
+        ai_message = _call_copilot_api(
             system_prompt="당신은 생산성 코치입니다. 간결한 응원 한 마디를 한국어로 해주세요.",
             user_prompt=f"할 일: {todos[0]['content']}\n회고 상태: {retro_state}\n짧은 응원 메시지를 주세요.",
         )
@@ -132,7 +157,7 @@ def generate_streak_recommendation(streak_days: int, days: list[dict[str, Any]])
     recent_achievement = ["Y" if day.get("achievement") else "N" for day in days[:7]]
     pattern = "-".join(recent_achievement) if recent_achievement else "기록 없음"
 
-    ai_message = _call_azure_openai(
+    ai_message = _call_copilot_api(
         system_prompt=(
             "당신은 생산성 코치입니다. "
             "연속 달성 일수를 바탕으로 동기부여와 실행 팁을 한국어 2~3문장으로 제시하세요."

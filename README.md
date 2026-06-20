@@ -28,7 +28,9 @@ python3 -m http.server 3000 -d static
 - 히스토리: http://localhost:3000/history.html
 - 기록 상세: http://localhost:3000/history-detail.html?day=YYYY-MM-DD
 
-## OpenAI 연결 전 사전 세팅
+## Copilot SDK (Semantic Kernel) 설정
+
+이 프로젝트는 **Copilot SDK** 원칙을 따르며 Semantic Kernel을 사용하여 Azure OpenAI와 통합됩니다.
 
 키보드 사용이 가능해지면 아래 3가지만 입력하면 됩니다.
 
@@ -36,7 +38,26 @@ python3 -m http.server 3000 -d static
 2. Azure OpenAI 값 입력 (`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT`)
 3. 서버 재시작
 
-AI 키를 아직 넣지 않아도 앱은 폴백 로직으로 동작합니다.
+**Copilot SDK 설정이 없어도 앱은 폴백 로직으로 동작합니다.**
+
+### Semantic Kernel 소개
+
+```python
+# ai_service.py에서 Copilot SDK 사용:
+from semantic_kernel import Kernel
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+
+kernel = Kernel()
+chat_completion = AzureChatCompletion(
+    deployment_name=deployment,
+    endpoint=endpoint,
+    api_key=api_key,
+    api_version="2024-02-15-preview",
+)
+kernel.add_service(chat_completion)
+```
+
+requirements에 `semantic-kernel==1.8.0`이 포함되어 있습니다.
 
 ## 시간 게이트 빠른 설정
 
