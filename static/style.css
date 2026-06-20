@@ -347,6 +347,62 @@ button.is-loading::after {
   background: #fff;
 }
 
+.result-enter {
+  animation: result-pop 0.35s ease-out both;
+}
+
+.advice-comparison {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+
+.advice-comparison-item {
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(22, 39, 63, 0.08);
+}
+
+.advice-comparison-label {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.advice-before {
+  background: linear-gradient(135deg, rgba(102, 112, 133, 0.08), rgba(255, 255, 255, 0.96));
+}
+
+.advice-before .advice-comparison-label {
+  background: rgba(102, 112, 133, 0.12);
+  color: #4b5563;
+}
+
+.advice-after {
+  background: linear-gradient(135deg, rgba(15, 138, 120, 0.14), rgba(255, 255, 255, 0.98));
+  border-color: rgba(15, 138, 120, 0.22);
+}
+
+.advice-after .advice-comparison-label {
+  background: rgba(15, 138, 120, 0.15);
+  color: var(--brand-dark);
+}
+
+.advice-comparison.animate-in .advice-before,
+.advice-comparison.animate-in .advice-after {
+  animation: compare-pop 0.45s ease-out both;
+}
+
+.advice-comparison.animate-in .advice-after {
+  animation-delay: 0.08s;
+}
+
 .skeleton-box {
   display: grid;
   gap: 10px;
@@ -604,6 +660,32 @@ button.is-loading::after {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes compare-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes result-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    box-shadow: 0 0 0 rgba(22, 39, 63, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    box-shadow: 0 8px 18px rgba(22, 39, 63, 0.08);
   }
 }
 

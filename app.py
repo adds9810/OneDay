@@ -2,7 +2,7 @@ import os
 from typing import Any
 from datetime import datetime
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -46,6 +46,16 @@ CORS(app, resources={r"/api/*": {"origins": _parse_cors_origins()}})
 
 # 앱 시작 시 DB를 초기화합니다.
 init_db()
+
+
+@app.get("/")
+def index() -> Any:
+    return send_from_directory("static", "index.html")
+
+
+@app.get("/<path:filename>")
+def static_files(filename: str) -> Any:
+    return send_from_directory("static", filename)
 
 
 def _safe_text(value: Any, max_len: int) -> str:
@@ -202,7 +212,7 @@ def afternoon_advice() -> Any:
 
         retrospective_written = get_today_retrospective() is not None
         advice = generate_afternoon_advice(context, todos, retrospective_written)
-        return jsonify({"advice": advice})
+        return jsonify(advice)
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
     except Exception:

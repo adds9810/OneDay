@@ -3,9 +3,13 @@ import asyncio
 from typing import Any, Optional
 
 try:
-    # Copilot SDK: Semantic Kernel을 사용하여 Azure OpenAI와 통합합니다.
+    # Copilot SDK: Semantic Kernel + Azure OpenAI 커넥터를 사용합니다.
     from semantic_kernel import Kernel
-    from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+    from semantic_kernel.connectors.ai.open_ai import (
+        AzureChatCompletion,
+        AzureChatPromptExecutionSettings,
+    )
+    from semantic_kernel.contents import ChatHistory
     SEMANTIC_KERNEL_AVAILABLE = True
 except Exception:
     SEMANTIC_KERNEL_AVAILABLE = False
@@ -44,6 +48,7 @@ async def _call_copilot_api_async(system_prompt: str, user_prompt: str) -> Optio
     endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "").strip()
     api_key = os.getenv("AZURE_OPENAI_API_KEY", "").strip()
     deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "").strip()
+    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21").strip()
 
     if not endpoint or not api_key or not deployment or not SEMANTIC_KERNEL_AVAILABLE:
         return None
@@ -51,28 +56,32 @@ async def _call_copilot_api_async(system_prompt: str, user_prompt: str) -> Optio
     try:
         # Semantic Kernel을 사용한 Copilot SDK 연동
         kernel = Kernel()
-        
-        # Azure OpenAI 서비스를 커널에 추가
+        service_id = "oneday-copilot"
+
+        # Azure OpenAI 서비스를 커널에 추가합니다.
         chat_completion = AzureChatCompletion(
+            service_id=service_id,
             deployment_name=deployment,
             endpoint=endpoint,
             api_key=api_key,
-            api_version="2024-02-15-preview",
+            api_version=api_version,
         )
         kernel.add_service(chat_completion)
-        
-        # 프롬프트 생성 및 실행
-        prompt_template = f"{system_prompt}\n\n사용자: {user_prompt}\n어시스턴트:"
-        
-        # invoke를 사용한 동기 호출
-        response = kernel.invoke_prompt(
-            prompt_template,
-            settings={
-                "max_tokens": 500,
-                "temperature": 0.5,
-            }
+
+        chat_history = ChatHistory()
+        chat_history.add_system_message(system_prompt)
+        chat_history.add_user_message(user_prompt)
+
+        request_settings = AzureChatPromptExecutionSettings(service_id=service_id)
+        request_settings.max_tokens = 500
+        request_settings.temperature = 0.5
+
+        response = await chat_completion.get_chat_message_content(
+            chat_history=chat_history,
+            settings=request_settings,
+            kernel=kernel,
         )
-        
+
         content = str(response).strip() if response else None
         return content if content else None
     except Exception:
@@ -96,7 +105,7 @@ def generate_afternoon_advice(
     advice_input: str,
     todos: list[dict[str, Any]],
     retrospective_written: bool,
-) -> str:
+) -> dict[str, str]:
     # 완료/미완료 목록을 분리합니다.
     pending = [t for t in todos if not t.get("completed")]
     completed = [t for t in todos if t.get("completed")]
@@ -109,6 +118,32 @@ def generate_afternoon_advice(
         for t in todos
     )
     retro_state = "작성 완료" if retrospective_written else "미작성"
+
+    def _priority_score(todo_text: str) -> int:
+        lower_context = context.lower()
+        lower_todo = todo_text.lower()
+
+        score = 0
+        if any(keyword in lower_context for keyword in ["마케팅", "marketing"]):
+            if any(keyword in lower_todo for keyword in ["마케팅", "strategy", "전략"]):
+                score -= 20
+        if any(keyword in lower_context for keyword in ["보고서", "report"]):
+            if any(keyword in lower_todo for keyword in ["보고서", "report"]):
+                score -= 20
+        if any(keyword in lower_context for keyword in ["팀미팅", "미팅", "회의", "meeting"]):
+            if any(keyword in lower_todo for keyword in ["팀 미팅", "미팅", "회의", "meeting"]):
+                score -= 20
+
+        if any(keyword in lower_todo for keyword in ["마케팅", "strategy", "전략"]):
+            score += 1
+        elif any(keyword in lower_todo for keyword in ["보고서", "report"]):
+            score += 2
+        elif any(keyword in lower_todo for keyword in ["팀 미팅", "미팅", "회의", "meeting"]):
+            score += 3
+        else:
+            score += 10
+
+        return score
 
     if total_count >= 2 and pending:
         # 2개 이상 투두가 있을 때 우선순위 추천 모드입니다.
@@ -126,14 +161,24 @@ def generate_afternoon_advice(
             ),
         )
         if ai_message:
-            return ai_message
+            return {
+                "advice": ai_message,
+                "source": "copilot",
+            }
 
         # Azure OpenAI 미설정 시 규칙 기반 폴백입니다.
-        lines = [f"{i + 1}. {t['content']}" for i, t in enumerate(pending)]
+        ordered_pending = sorted(
+            pending,
+            key=lambda todo: (_priority_score(todo.get("content", "")), todo.get("id", 0)),
+        )
+        lines = [f"{i + 1}. {t['content']}" for i, t in enumerate(ordered_pending)]
         reason = f"총 {total_count}개 중 {len(pending)}개가 남아 있어요."
         if context:
             reason += f" ({context})"
-        return f"{reason} 추천 순서:\n" + "\n".join(lines) + "\n가장 어려운 것부터 끝내면 나머지가 수월해집니다."
+        return {
+            "advice": f"{reason} 추천 순서:\n" + "\n".join(lines) + "\n가장 어려운 것부터 끝내면 나머지가 수월해집니다.",
+            "source": "fallback",
+        }
 
     elif total_count == 1:
         # 투두가 1개일 때는 단순 응원 메시지입니다.
@@ -142,11 +187,20 @@ def generate_afternoon_advice(
             user_prompt=f"할 일: {todos[0]['content']}\n회고 상태: {retro_state}\n짧은 응원 메시지를 주세요.",
         )
         if ai_message:
-            return ai_message
-        return f"'{todos[0]['content']}' 하나만 집중해서 끝내 보세요. 작은 완료가 오늘의 승리입니다."
+            return {
+                "advice": ai_message,
+                "source": "copilot",
+            }
+        return {
+            "advice": f"'{todos[0]['content']}' 하나만 집중해서 끝내 보세요. 작은 완료가 오늘의 승리입니다.",
+            "source": "fallback",
+        }
 
     else:
-        return "오늘 할 일을 등록하면 우선순위 추천을 받을 수 있어요."
+        return {
+            "advice": "오늘 할 일을 등록하면 우선순위 추천을 받을 수 있어요.",
+            "source": "fallback",
+        }
 
 
 def generate_streak_recommendation(streak_days: int, days: list[dict[str, Any]]) -> str:

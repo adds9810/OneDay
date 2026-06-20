@@ -14,6 +14,8 @@ const API_BASE =
     ? "http://localhost:8080"
     : `${window.location.protocol}//${window.location.host}`);
 
+let activeApiBase = API_BASE;
+
 const queryForcePm = (PAGE_PARAMS.get("force_pm") || "").trim();
 if (queryForcePm) {
   localStorage.setItem("oneday-force-pm", queryForcePm);
@@ -39,6 +41,10 @@ const adviceInput = document.querySelector("#adviceInput");
 const adviceSubmitBtn = document.querySelector("#adviceSubmitBtn");
 const adviceHint = document.querySelector("#adviceHint");
 const adviceResult = document.querySelector("#adviceResult");
+const adviceSource = document.querySelector("#adviceSource");
+const adviceComparison = document.querySelector("#adviceComparison");
+const adviceBeforeText = document.querySelector("#adviceBeforeText");
+const adviceAfterText = document.querySelector("#adviceAfterText");
 const adviceText = document.querySelector("#adviceText");
 const adviceSkeleton = document.querySelector("#adviceSkeleton");
 const adviceRetryBtn = document.querySelector("#adviceRetryBtn");
@@ -213,10 +219,27 @@ function showNotice(message, type = "ok") {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const fetchOptions = {
     headers: { "Content-Type": "application/json" },
     ...options,
-  });
+  };
+
+  let response;
+  try {
+    response = await fetch(`${activeApiBase}${path}`, fetchOptions);
+  } catch (error) {
+    const canRecoverLocal =
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") &&
+      activeApiBase !== "http://localhost:8080";
+
+    if (canRecoverLocal) {
+      activeApiBase = "http://localhost:8080";
+      localStorage.setItem("oneday-api-base", activeApiBase);
+      response = await fetch(`${activeApiBase}${path}`, fetchOptions);
+    } else {
+      throw error;
+    }
+  }
 
   const data = await response.json().catch(() => ({}));
 
@@ -576,6 +599,7 @@ async function submitAdvice(content) {
 
   lastAdviceContent = content;
   isAdviceLoading = true;
+  const previousAdviceText = adviceText ? adviceText.textContent.trim() : "";
 
   if (adviceRetryBtn) {
     adviceRetryBtn.hidden = true;
@@ -595,6 +619,27 @@ async function submitAdvice(content) {
     });
 
     adviceResult.hidden = false;
+    adviceResult.classList.remove("result-enter");
+    void adviceResult.offsetWidth;
+    adviceResult.classList.add("result-enter");
+    if (adviceSource) {
+      adviceSource.textContent =
+        data.source === "copilot"
+          ? "AI가 분석한 추천이에요."
+          : "현재는 AI를 사용할 수 없어 기본 추천으로 보여드려요.";
+    }
+    if (adviceComparison && adviceBeforeText && adviceAfterText) {
+      if (previousAdviceText && previousAdviceText !== data.advice) {
+        adviceBeforeText.textContent = previousAdviceText;
+        adviceAfterText.textContent = data.advice;
+        adviceComparison.hidden = false;
+        adviceComparison.classList.remove("animate-in");
+        void adviceComparison.offsetWidth;
+        adviceComparison.classList.add("animate-in");
+      } else {
+        adviceComparison.hidden = true;
+      }
+    }
     adviceText.textContent = data.advice;
     showNotice("우선순위 추천을 받았습니다.");
   } catch (error) {
