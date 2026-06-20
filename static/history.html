@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OneDay - 히스토리</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="hero">
+        <h1>히스토리</h1>
+        <p>할 일 달성 여부와 회고 작성 여부를 날짜별로 확인하세요.</p>
+        <a class="nav-link" href="./index.html">홈으로 돌아가기</a>
+      </header>
+
+      <section class="card history-top">
+        <div id="streakBox" class="streak-box">연속 달성 0일</div>
+        <p class="time-note">완전 달성 기준: 당일 할 일 전체 완료 + 회고 작성</p>
+      </section>
+
+      <section class="card">
+        <h2>최근 기록</h2>
+        <ul id="historyList" class="history-list"></ul>
+      </section>
+
+      <p id="notice" class="notice" aria-live="polite"></p>
+    </main>
+
+    <script src="./history.js"></script>
+  </body>
+</html>

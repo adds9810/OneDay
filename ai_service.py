@@ -28,3 +28,25 @@ def analyze_retrospective(retrospective_text: str, todos: list[dict[str, Any]]) 
         "analysis": analysis,
         "cheer_message": cheer_message,
     }
+
+
+def generate_afternoon_advice(advice_input: str, todos: list[dict[str, Any]]) -> str:
+    completed_count = sum(1 for todo in todos if todo.get("completed"))
+    total_count = len(todos)
+    remained = max(0, total_count - completed_count)
+
+    topic = advice_input.strip()
+    if not topic:
+        topic = "집중 유지"
+
+    if remained == 0 and total_count > 0:
+        progress = "오늘 할 일을 이미 모두 완료했어요."
+        tip = "남은 시간에는 내일을 위한 15분 준비를 해보세요."
+    elif total_count == 0:
+        progress = "아직 오늘 할 일이 등록되지 않았어요."
+        tip = "가장 중요한 일 1개만 먼저 등록해 작은 승리를 만드세요."
+    else:
+        progress = f"현재 할 일 {total_count}개 중 {completed_count}개를 완료했고, {remained}개가 남았어요."
+        tip = "남은 항목을 25분 단위로 쪼개고, 가장 어려운 것부터 시작해 보세요."
+
+    return f"주제: {topic}. {progress} 실행 조언: {tip}"

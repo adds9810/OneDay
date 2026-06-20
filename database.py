@@ -41,6 +41,15 @@ def init_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS carryover_decisions (
+                day_key TEXT PRIMARY KEY,
+                decision TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
         conn.commit()
 
 
@@ -182,4 +191,237 @@ def get_today_retrospective() -> Optional[dict]:
         "analysis": row["analysis"],
         "cheer_message": row["cheer_message"],
         "created_at": row["created_at"],
+    }
+
+
+def _find_latest_previous_day() -> Optional[str]:
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT day_key
+            FROM todos
+            WHERE day_key < ?
+            GROUP BY day_key
+            ORDER BY day_key DESC
+            LIMIT 1
+            """,
+            (today_key(),),
+        ).fetchone()
+
+    return None if row is None else row["day_key"]
+
+
+def _get_unfinished_todos(day_key_value: str) -> list[dict]:
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, content, completed, created_at
+            FROM todos
+            WHERE day_key = ? AND completed = 0
+            ORDER BY id ASC
+            """,
+            (day_key_value,),
+        ).fetchall()
+
+    return [
+        {
+            "id": row["id"],
+            "content": row["content"],
+            "completed": bool(row["completed"]),
+            "created_at": row["created_at"],
+        }
+        for row in rows
+    ]
+
+
+def _get_carryover_decision(day_key_value: str) -> Optional[str]:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT decision FROM carryover_decisions WHERE day_key = ?",
+            (day_key_value,),
+        ).fetchone()
+
+    return None if row is None else row["decision"]
+
+
+def get_pending_from_yesterday() -> dict:
+    previous_day = _find_latest_previous_day()
+    if previous_day is None:
+        return {
+            "has_pending": False,
+            "resolved": True,
+            "source_day": None,
+            "todos": [],
+        }
+
+    unfinished = _get_unfinished_todos(previous_day)
+    if not unfinished:
+        return {
+            "has_pending": False,
+            "resolved": True,
+            "source_day": previous_day,
+            "todos": [],
+        }
+
+    decision = _get_carryover_decision(today_key())
+    return {
+        "has_pending": True,
+        "resolved": decision is not None,
+        "source_day": previous_day,
+        "decision": decision,
+        "todos": unfinished,
+    }
+
+
+def apply_pending_decision(action: str) -> dict:
+    if action not in {"add", "skip"}:
+        raise ValueError("잘못된 요청입니다. add 또는 skip만 가능합니다.")
+
+    pending = get_pending_from_yesterday()
+    if not pending["has_pending"]:
+        return {
+            "action": action,
+            "added_count": 0,
+            "skipped_count": 0,
+            "message": "이월할 미완료 항목이 없습니다.",
+        }
+
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO carryover_decisions(day_key, decision)
+            VALUES (?, ?)
+            ON CONFLICT(day_key) DO UPDATE SET decision = excluded.decision
+            """,
+            (today_key(), action),
+        )
+
+        added_count = 0
+        skipped_count = 0
+
+        if action == "add":
+            slots = max(0, 3 - count_todos())
+            for todo in pending["todos"]:
+                if slots <= 0:
+                    skipped_count += 1
+                    continue
+                conn.execute(
+                    "INSERT INTO todos(day_key, content, completed) VALUES (?, ?, 0)",
+                    (today_key(), todo["content"]),
+                )
+                added_count += 1
+                slots -= 1
+        else:
+            skipped_count = len(pending["todos"])
+
+        conn.commit()
+
+    if action == "add":
+        message = "미완료 항목을 오늘 할 일에 추가했습니다."
+    else:
+        message = "미완료 항목을 오늘 할 일에 추가하지 않았습니다."
+
+    return {
+        "action": action,
+        "added_count": added_count,
+        "skipped_count": skipped_count,
+        "message": message,
+    }
+
+
+def _list_active_days(limit: int) -> list[str]:
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            WITH all_days AS (
+                SELECT day_key FROM todos
+                UNION
+                SELECT day_key FROM retrospectives
+            )
+            SELECT day_key
+            FROM all_days
+            ORDER BY day_key DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+
+    return [row["day_key"] for row in rows]
+
+
+def _day_todo_stats(day_key_value: str) -> tuple[int, int]:
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT
+                COUNT(*) AS total_count,
+                SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) AS completed_count
+            FROM todos
+            WHERE day_key = ?
+            """,
+            (day_key_value,),
+        ).fetchone()
+
+    total_count = int(row["total_count"] or 0)
+    completed_count = int(row["completed_count"] or 0)
+    return total_count, completed_count
+
+
+def _has_retrospective(day_key_value: str) -> bool:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM retrospectives WHERE day_key = ? LIMIT 1",
+            (day_key_value,),
+        ).fetchone()
+
+    return row is not None
+
+
+def _compute_streak(days_desc: list[dict]) -> int:
+    streak = 0
+    for day in days_desc:
+        if day["achievement"]:
+            streak += 1
+            continue
+        break
+    return streak
+
+
+def get_history(limit: int = 30) -> dict:
+    days = []
+    for day_key_value in _list_active_days(limit):
+        total_count, completed_count = _day_todo_stats(day_key_value)
+        retrospective_written = _has_retrospective(day_key_value)
+        todo_achieved = total_count > 0 and completed_count == total_count
+        achievement = todo_achieved and retrospective_written
+
+        if achievement:
+            icon = "🏆"
+            label = "완전 달성"
+        elif todo_achieved:
+            icon = "✅"
+            label = "할 일 완료"
+        elif retrospective_written:
+            icon = "📝"
+            label = "회고만 작성"
+        else:
+            icon = "⏳"
+            label = "진행 중"
+
+        days.append(
+            {
+                "day_key": day_key_value,
+                "todo_total": total_count,
+                "todo_completed": completed_count,
+                "todo_achieved": todo_achieved,
+                "retrospective_written": retrospective_written,
+                "achievement": achievement,
+                "icon": icon,
+                "label": label,
+            }
+        )
+
+    return {
+        "streak_days": _compute_streak(days),
+        "days": days,
     }

@@ -25,20 +25,27 @@ python3 -m http.server 3000 -d static
 ```
 
 - 웹 주소: http://localhost:3000
+- 히스토리: http://localhost:3000/history.html
 
 ## 주요 기능
 
 - 투두 1~3개 등록 및 완료 체크
-- 저녁 회고 작성
-- 회고 분석 및 응원 메시지 제공
+- 오후 3시 이후 AI 조언 받기
+- 오후 3시 이후 저녁 회고 작성
+- 어제 미완료 항목을 오늘 할 일에 추가할지 선택
+- 히스토리 페이지(아이콘 상태 + 연속 달성 일자)
 
 ## API 요약
 
 - `GET /api/todos`
 - `POST /api/todos`
 - `PATCH /api/todos/<id>`
+- `GET /api/todos/pending-from-yesterday`
+- `POST /api/todos/pending-decision`
+- `POST /api/advice`
 - `POST /api/retrospective`
 - `GET /api/retrospective/today`
+- `GET /api/history`
 
 ## 보안/규칙 반영
 

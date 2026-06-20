@@ -1,12 +1,16 @@
 from typing import Any
+from datetime import datetime
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from ai_service import analyze_retrospective
+from ai_service import analyze_retrospective, generate_afternoon_advice
 from database import (
     add_todo,
+    apply_pending_decision,
     count_todos,
+    get_history,
+    get_pending_from_yesterday,
     get_today_retrospective,
     get_todo,
     get_todos,
@@ -32,6 +36,10 @@ def _safe_text(value: Any, max_len: int) -> str:
     return text
 
 
+def _after_three_pm() -> bool:
+    return datetime.now().hour >= 15
+
+
 @app.get("/api/health")
 def health() -> Any:
     return jsonify({"message": "서버가 정상 동작 중입니다."})
@@ -40,6 +48,24 @@ def health() -> Any:
 @app.get("/api/todos")
 def list_todos() -> Any:
     return jsonify({"todos": get_todos()})
+
+
+@app.get("/api/todos/pending-from-yesterday")
+def pending_from_yesterday() -> Any:
+    return jsonify(get_pending_from_yesterday())
+
+
+@app.post("/api/todos/pending-decision")
+def pending_decision() -> Any:
+    try:
+        payload = request.get_json(silent=True) or {}
+        action = str(payload.get("action") or "").strip()
+        result = apply_pending_decision(action)
+        return jsonify(result)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    except Exception:
+        return jsonify({"error": "이월 항목 처리 중 오류가 발생했습니다."}), 500
 
 
 @app.post("/api/todos")
@@ -82,6 +108,12 @@ def patch_todo(todo_id: int) -> Any:
 @app.post("/api/retrospective")
 def create_retrospective() -> Any:
     try:
+        if not _after_three_pm():
+            return jsonify({"error": "회고는 오후 3시 이후에 작성할 수 있습니다."}), 400
+
+        if count_todos() < 1:
+            return jsonify({"error": "회고 전 오늘의 투두를 최소 1개 등록해 주세요."}), 400
+
         payload = request.get_json(silent=True) or {}
         content = _safe_text(payload.get("content"), 2000)
 
@@ -100,12 +132,39 @@ def create_retrospective() -> Any:
         return jsonify({"error": "회고 분석 중 오류가 발생했습니다."}), 500
 
 
+@app.post("/api/advice")
+def afternoon_advice() -> Any:
+    try:
+        if not _after_three_pm():
+            return jsonify({"error": "AI 조언은 오후 3시 이후에 요청할 수 있습니다."}), 400
+
+        if count_todos() < 1:
+            return jsonify({"error": "조언 전 오늘의 투두를 최소 1개 등록해 주세요."}), 400
+
+        payload = request.get_json(silent=True) or {}
+        advice_input = _safe_text(payload.get("content"), 1000)
+        advice = generate_afternoon_advice(advice_input, get_todos())
+        return jsonify({"advice": advice})
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    except Exception:
+        return jsonify({"error": "AI 조언 생성 중 오류가 발생했습니다."}), 500
+
+
 @app.get("/api/retrospective/today")
 def get_retrospective_today() -> Any:
     retrospective = get_today_retrospective()
     if retrospective is None:
         return jsonify({"message": "아직 오늘 회고가 없습니다."}), 404
     return jsonify(retrospective)
+
+
+@app.get("/api/history")
+def history() -> Any:
+    try:
+        return jsonify(get_history(limit=60))
+    except Exception:
+        return jsonify({"error": "히스토리 조회 중 오류가 발생했습니다."}), 500
 
 
 if __name__ == "__main__":

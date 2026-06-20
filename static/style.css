@@ -38,6 +38,18 @@ body {
   opacity: 0.86;
 }
 
+.nav-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -99,6 +111,12 @@ button:hover {
   filter: brightness(0.95);
 }
 
+button.secondary {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
 .todo-list {
   list-style: none;
   margin: 12px 0 0;
@@ -137,6 +155,63 @@ button:hover {
   border-radius: 12px;
   padding: 12px;
   background: #fff;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.time-note {
+  margin: 8px 0 0;
+  color: #4b5563;
+}
+
+.history-top {
+  display: grid;
+  gap: 8px;
+}
+
+.streak-box {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  font-weight: 700;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.history-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  display: grid;
+  gap: 6px;
+}
+
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.history-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+  color: #374151;
 }
 
 .notice {

@@ -11,7 +11,18 @@
       <header class="hero">
         <h1>OneDay</h1>
         <p>오늘 딱 필요한 일 1~3개만 끝내고, 저녁에 회고를 남겨요.</p>
+        <a class="nav-link" href="./history.html">히스토리 보기</a>
       </header>
+
+      <section id="carryoverCard" class="card" hidden>
+        <h2>어제 미완료 항목</h2>
+        <p id="carryoverText"></p>
+        <ul id="carryoverList" class="todo-list"></ul>
+        <div class="action-row">
+          <button id="carryoverAddBtn" type="button">오늘 할 일에 추가하기</button>
+          <button id="carryoverSkipBtn" class="secondary" type="button">추가 안 하기</button>
+        </div>
+      </section>
 
       <section class="card">
         <div class="card-head">
@@ -34,23 +45,45 @@
       </section>
 
       <section class="card">
-        <h2>저녁 회고</h2>
-        <form id="retrospectiveForm" class="stack-form">
-          <textarea
-            id="retrospectiveInput"
-            rows="6"
-            maxlength="2000"
-            placeholder="오늘 무엇이 잘 되었고, 무엇이 어려웠는지 자유롭게 적어보세요."
-            required
-          ></textarea>
-          <button type="submit">AI 분석 받기</button>
-        </form>
+        <h2>오후 3시 이후 코칭</h2>
+        <p id="timeGateNotice" class="time-note"></p>
 
-        <div id="retrospectiveResult" class="result" hidden>
-          <h3>AI 분석</h3>
-          <p id="analysisText"></p>
-          <h3>응원 메시지</h3>
-          <p id="cheerText"></p>
+        <div id="afternoonPanel" hidden>
+          <form id="adviceForm" class="stack-form">
+            <label for="adviceInput">AI에게 조언 받기</label>
+            <textarea
+              id="adviceInput"
+              rows="3"
+              maxlength="1000"
+              placeholder="예: 남은 업무 우선순위를 어떻게 잡으면 좋을까?"
+              required
+            ></textarea>
+            <button type="submit">조언 받기</button>
+          </form>
+
+          <div id="adviceResult" class="result" hidden>
+            <h3>AI 조언</h3>
+            <p id="adviceText"></p>
+          </div>
+
+          <form id="retrospectiveForm" class="stack-form">
+            <label for="retrospectiveInput">회고하기</label>
+            <textarea
+              id="retrospectiveInput"
+              rows="6"
+              maxlength="2000"
+              placeholder="오늘 무엇이 잘 되었고, 무엇이 어려웠는지 자유롭게 적어보세요."
+              required
+            ></textarea>
+            <button type="submit">회고 조언 받기</button>
+          </form>
+
+          <div id="retrospectiveResult" class="result" hidden>
+            <h3>AI 조언</h3>
+            <p id="analysisText"></p>
+            <h3>응원 메시지</h3>
+            <p id="cheerText"></p>
+          </div>
         </div>
       </section>
 
