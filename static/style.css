@@ -230,6 +230,19 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled {
+  background: linear-gradient(135deg, #c5c5c5, #a8a8a8);
+  color: #ffffff;
+  cursor: not-allowed;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: none;
+  opacity: 0.65;
+}
+
+button:disabled:hover {
+  transform: none;
+}
+
 button.secondary {
   border: 1px solid var(--line);
   background: #fff;
