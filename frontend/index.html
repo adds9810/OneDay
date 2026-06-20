@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OneDay - 오늘 딱 이것만</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>OneDay</h1>
+      <p class="subtitle">오늘 딱 1~3개 투두 + 저녁 회고 + AI 응원</p>
+
+      <section class="card">
+        <h2>오늘의 투두 (최대 3개)</h2>
+        <form id="todo-form">
+          <input id="todo-input" type="text" maxlength="80" placeholder="예: 프로젝트 PR 마무리" required />
+          <button type="submit">추가</button>
+        </form>
+        <p id="todo-count" class="hint"></p>
+        <ul id="todo-list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>저녁 회고</h2>
+        <textarea id="retrospective-input" rows="5" placeholder="오늘 잘한 점, 아쉬운 점, 내일 개선할 점을 적어보세요."></textarea>
+        <div class="actions">
+          <button id="save-retrospective" type="button">회고 저장</button>
+          <button id="analyze-retrospective" type="button">AI 분석 + 응원</button>
+        </div>
+        <div id="analysis-result" class="analysis"></div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
