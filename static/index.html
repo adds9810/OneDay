@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OneDay - 오늘의 실행</title>
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./style.css?v=2" />
   </head>
   <body>
     <main class="container">
@@ -74,9 +74,23 @@
           </button>
         </form>
 
+        <div id="adviceSkeleton" class="result skeleton-box" hidden>
+          <div class="skeleton-line w80"></div>
+          <div class="skeleton-line w95"></div>
+          <div class="skeleton-line w70"></div>
+        </div>
+
         <div id="adviceResult" class="result" hidden>
           <h3>AI 우선순위 추천</h3>
           <p id="adviceText"></p>
+          <p class="time-note">
+            AI 응답은 부정확할 수 있어요. 중요한 결정 전에는 직접 한 번 더 확인해 주세요.
+          </p>
+          <div class="action-row">
+            <button id="adviceRetryBtn" type="button" class="secondary" hidden>
+              다시 시도
+            </button>
+          </div>
         </div>
       </section>
 
@@ -100,14 +114,31 @@
             <button type="submit" disabled>하루 정리하기</button>
           </form>
 
+          <div id="retrospectiveSkeleton" class="result skeleton-box" hidden>
+            <div class="skeleton-line w75"></div>
+            <div class="skeleton-line w92"></div>
+            <div class="skeleton-line w88"></div>
+          </div>
+
           <div id="retrospectiveResult" class="result" hidden>
             <h3>AI 조언</h3>
             <p id="analysisText"></p>
             <h3>응원 메시지</h3>
             <p id="cheerText"></p>
+            <p class="time-note">
+              AI 조언은 참고용이며, 사실과 다를 수 있습니다.
+            </p>
             <div class="action-row">
               <button id="reanalyzeBtn" type="button" class="secondary">
                 AI 다시 분석하기
+              </button>
+              <button
+                id="retrospectiveRetryBtn"
+                type="button"
+                class="secondary"
+                hidden
+              >
+                다시 시도
               </button>
             </div>
           </div>
@@ -150,6 +181,6 @@
       </div>
     </main>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=8"></script>
   </body>
 </html>

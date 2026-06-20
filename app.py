@@ -1,8 +1,10 @@
+import os
 from typing import Any
 from datetime import datetime
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from dotenv import load_dotenv
 
 from ai_service import (
     analyze_retrospective,
@@ -27,8 +29,19 @@ from database import (
     update_todo_content,
 )
 
+# .env 파일의 환경변수를 로드합니다.
+load_dotenv()
+
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000"]}})
+
+
+def _parse_cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins if origins else ["http://localhost:3000"]
+
+
+CORS(app, resources={r"/api/*": {"origins": _parse_cors_origins()}})
 
 
 # 앱 시작 시 DB를 초기화합니다.
@@ -45,7 +58,21 @@ def _safe_text(value: Any, max_len: int) -> str:
 
 
 def _after_three_pm() -> bool:
+    forced = os.getenv("FORCE_AFTER_THREE_PM", "").strip().lower()
+    if forced in {"1", "true", "yes", "on"}:
+        return True
+    if forced in {"0", "false", "no", "off"}:
+        return False
     return datetime.now().hour >= 15
+
+
+def _safe_day_key(value: str) -> str:
+    text = str(value or "").strip()
+    try:
+        datetime.strptime(text, "%Y-%m-%d")
+    except ValueError as error:
+        raise ValueError("날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식으로 요청해 주세요.") from error
+    return text
 
 
 @app.get("/api/health")
@@ -222,13 +249,18 @@ def history() -> Any:
 @app.get("/api/history/<string:day_key_value>")
 def history_detail(day_key_value: str) -> Any:
     try:
-        detail = get_history_detail(day_key_value)
+        safe_day_key = _safe_day_key(day_key_value)
+        detail = get_history_detail(safe_day_key)
         if detail is None:
             return jsonify({"error": "해당 날짜의 기록을 찾을 수 없습니다."}), 404
         return jsonify(detail)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
     except Exception:
         return jsonify({"error": "히스토리 상세 조회 중 오류가 발생했습니다."}), 500
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    port = int(os.getenv("PORT", "8080"))
+    debug = os.getenv("FLASK_DEBUG", "true").strip().lower() in {"1", "true", "yes", "on"}
+    app.run(host="0.0.0.0", port=port, debug=debug)

@@ -19,6 +19,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -233,6 +237,22 @@ button.secondary {
   box-shadow: none;
 }
 
+button.is-loading {
+  opacity: 0.88;
+  cursor: progress;
+}
+
+button.is-loading::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  margin-left: 8px;
+  animation: spin 0.9s linear infinite;
+}
+
 .todo-list {
   list-style: none;
   margin: 12px 0 0;
@@ -243,7 +263,7 @@ button.secondary {
 
 .todo-item {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto auto 1fr auto auto;
   align-items: center;
   gap: 10px;
   border: 1px solid rgba(15, 138, 120, 0.18);
@@ -266,6 +286,37 @@ button.secondary {
   opacity: 0.62;
 }
 
+.priority-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.priority-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.todo-priority-select {
+  width: 68px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.priority-fixed {
+  border: 1px solid rgba(15, 138, 120, 0.35);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgba(15, 138, 120, 0.1);
+  color: var(--brand-dark);
+}
+
 .pill {
   border: 1px solid rgba(255, 122, 69, 0.35);
   border-radius: 999px;
@@ -281,6 +332,48 @@ button.secondary {
   border-radius: 14px;
   padding: 14px;
   background: #fff;
+}
+
+.skeleton-box {
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(220, 227, 238, 0.75),
+    rgba(245, 248, 252, 0.95),
+    rgba(220, 227, 238, 0.75)
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.skeleton-line.w95 {
+  width: 95%;
+}
+
+.skeleton-line.w92 {
+  width: 92%;
+}
+
+.skeleton-line.w88 {
+  width: 88%;
+}
+
+.skeleton-line.w80 {
+  width: 80%;
+}
+
+.skeleton-line.w75 {
+  width: 75%;
+}
+
+.skeleton-line.w70 {
+  width: 70%;
 }
 
 .action-row {
@@ -486,6 +579,21 @@ button.secondary {
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 760px) {
   .container {
     margin: 22px auto 52px;
@@ -513,6 +621,11 @@ button.secondary {
   }
 
   .todo-item .pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .todo-item .priority-inline {
     grid-column: 1 / -1;
     justify-self: start;
   }
