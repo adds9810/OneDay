@@ -425,3 +425,65 @@ def get_history(limit: int = 30) -> dict:
         "streak_days": _compute_streak(days),
         "days": days,
     }
+
+
+def get_history_detail(day_key_value: str) -> Optional[dict]:
+    with _connect() as conn:
+        todo_rows = conn.execute(
+            """
+            SELECT id, content, completed, created_at
+            FROM todos
+            WHERE day_key = ?
+            ORDER BY id ASC
+            """,
+            (day_key_value,),
+        ).fetchall()
+
+        retrospective_row = conn.execute(
+            """
+            SELECT day_key, content, analysis, cheer_message, created_at
+            FROM retrospectives
+            WHERE day_key = ?
+            """,
+            (day_key_value,),
+        ).fetchone()
+
+    todos = [
+        {
+            "id": row["id"],
+            "content": row["content"],
+            "completed": bool(row["completed"]),
+            "created_at": row["created_at"],
+        }
+        for row in todo_rows
+    ]
+
+    retrospective = None
+    if retrospective_row is not None:
+        retrospective = {
+            "day_key": retrospective_row["day_key"],
+            "content": retrospective_row["content"],
+            "analysis": retrospective_row["analysis"],
+            "cheer_message": retrospective_row["cheer_message"],
+            "created_at": retrospective_row["created_at"],
+        }
+
+    if not todos and retrospective is None:
+        return None
+
+    total_count = len(todos)
+    completed_count = sum(1 for todo in todos if todo["completed"])
+    todo_achieved = total_count > 0 and completed_count == total_count
+    retrospective_written = retrospective is not None
+    achievement = todo_achieved and retrospective_written
+
+    return {
+        "day_key": day_key_value,
+        "todo_total": total_count,
+        "todo_completed": completed_count,
+        "todo_achieved": todo_achieved,
+        "retrospective_written": retrospective_written,
+        "achievement": achievement,
+        "todos": todos,
+        "retrospective": retrospective,
+    }

@@ -10,6 +10,7 @@ from database import (
     apply_pending_decision,
     count_todos,
     get_history,
+    get_history_detail,
     get_pending_from_yesterday,
     get_today_retrospective,
     get_todo,
@@ -165,6 +166,17 @@ def history() -> Any:
         return jsonify(get_history(limit=60))
     except Exception:
         return jsonify({"error": "히스토리 조회 중 오류가 발생했습니다."}), 500
+
+
+@app.get("/api/history/<string:day_key_value>")
+def history_detail(day_key_value: str) -> Any:
+    try:
+        detail = get_history_detail(day_key_value)
+        if detail is None:
+            return jsonify({"error": "해당 날짜의 기록을 찾을 수 없습니다."}), 404
+        return jsonify(detail)
+    except Exception:
+        return jsonify({"error": "히스토리 상세 조회 중 오류가 발생했습니다."}), 500
 
 
 if __name__ == "__main__":

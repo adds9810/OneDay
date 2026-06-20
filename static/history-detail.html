@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OneDay - 기록 상세</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="hero">
+        <h1 id="detailTitle">기록 상세</h1>
+        <p>선택한 날짜의 할 일과 회고/조언 내용을 확인할 수 있어요.</p>
+        <a class="nav-link" href="./history.html">히스토리로 돌아가기</a>
+      </header>
+
+      <section class="card">
+        <h2>할 일 기록</h2>
+        <div id="todoSummary" class="time-note"></div>
+        <ul id="detailTodoList" class="todo-list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>회고 / AI 조언</h2>
+        <div id="retroEmpty" class="time-note">
+          해당 날짜의 회고 기록이 없습니다.
+        </div>
+        <div id="retroDetail" class="result" hidden>
+          <h3>회고 입력</h3>
+          <p id="retroContent" class="detail-text"></p>
+          <h3>AI 조언</h3>
+          <p id="retroAnalysis" class="detail-text"></p>
+          <h3>응원 메시지</h3>
+          <p id="retroCheer" class="detail-text"></p>
+        </div>
+      </section>
+
+      <p id="notice" class="notice" aria-live="polite"></p>
+    </main>
+
+    <script src="./history-detail.js"></script>
+  </body>
+</html>

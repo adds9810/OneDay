@@ -26,6 +26,7 @@ python3 -m http.server 3000 -d static
 
 - 웹 주소: http://localhost:3000
 - 히스토리: http://localhost:3000/history.html
+- 기록 상세: http://localhost:3000/history-detail.html?day=YYYY-MM-DD
 
 ## 주요 기능
 

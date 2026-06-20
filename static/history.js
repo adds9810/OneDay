@@ -14,7 +14,9 @@ async function request(path) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || data.message || "요청 중 오류가 발생했습니다.");
+    throw new Error(
+      data.error || data.message || "요청 중 오류가 발생했습니다.",
+    );
   }
 
   return data;
@@ -52,13 +54,25 @@ function renderHistory(days) {
     meta.className = "history-meta";
 
     const todoStat = document.createElement("span");
-    todoStat.textContent = `할 일 ${day.todo_completed}/${day.todo_total}`;
+    todoStat.className = `meta-pill ${day.todo_achieved ? "status-done" : "status-pending"}`;
+    todoStat.textContent = day.todo_achieved
+      ? `✅ 할 일 완료 (${day.todo_completed}/${day.todo_total})`
+      : `🕒 할 일 진행 중 (${day.todo_completed}/${day.todo_total})`;
 
     const retroStat = document.createElement("span");
-    retroStat.textContent = day.retrospective_written ? "회고 작성 완료" : "회고 미작성";
+    retroStat.className = `meta-pill ${day.retrospective_written ? "status-done" : "status-pending"}`;
+    retroStat.textContent = day.retrospective_written
+      ? "📝 회고 작성 완료"
+      : "📭 회고 미작성";
+
+    const detailLink = document.createElement("a");
+    detailLink.className = "detail-link";
+    detailLink.href = `./history-detail.html?day=${encodeURIComponent(day.day_key)}`;
+    detailLink.textContent = "상세 보기";
 
     meta.appendChild(todoStat);
     meta.appendChild(retroStat);
+    meta.appendChild(detailLink);
 
     li.appendChild(head);
     li.appendChild(meta);
@@ -69,7 +83,8 @@ function renderHistory(days) {
 (async function bootstrap() {
   try {
     const data = await request("/api/history");
-    streakBox.textContent = `연속 달성 ${data.streak_days}일`;
+    const streakIcon = data.streak_days > 0 ? "🔥" : "🌱";
+    streakBox.textContent = `${streakIcon} 연속 달성 ${data.streak_days}일`;
     renderHistory(data.days || []);
     showNotice("히스토리를 불러왔습니다.");
   } catch (error) {

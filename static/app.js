@@ -98,7 +98,8 @@ function isAfterThreePm() {
 function renderTimeGate() {
   if (isAfterThreePm()) {
     afternoonPanel.hidden = false;
-    timeGateNotice.textContent = "지금은 오후 3시 이후입니다. 조언과 회고를 입력할 수 있어요.";
+    timeGateNotice.textContent =
+      "지금은 오후 3시 이후입니다. 조언과 회고를 입력할 수 있어요.";
     return;
   }
 
