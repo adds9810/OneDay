@@ -80,6 +80,8 @@ URL의 `force_pm` 값은 브라우저에 저장되어 다음 접속에도 유지
 
 ## Azure 배포 빠른 경로 (App Service)
 
+> ✅ **이미 배포된 앱**: https://onedaygj0620.azurewebsites.net
+
 사전 준비
 
 - Azure CLI 로그인
@@ -90,15 +92,16 @@ az login
 az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
 ```
 
-리소스 생성 및 배포
+리소스 생성 및 zip 배포
 
 ```bash
 az group create -n oneday-rg -l koreacentral
 az appservice plan create -g oneday-rg -n oneday-plan --sku B1 --is-linux
 az webapp create -g oneday-rg -p oneday-plan -n <APP_NAME> --runtime "PYTHON|3.11"
-az webapp config appsettings set -g oneday-rg -n <APP_NAME> --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true CORS_ORIGINS="https://<FRONTEND_DOMAIN>"
+az webapp config appsettings set -g oneday-rg -n <APP_NAME> --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
 az webapp config set -g oneday-rg -n <APP_NAME> --startup-file "gunicorn app:app --bind 0.0.0.0:$PORT"
-az webapp deploy -g oneday-rg -n <APP_NAME> --src-path .
+zip -r /tmp/oneday.zip . -x '.git/*' '.venv/*' '__pycache__/*' '*.pyc' 'oneday.db'
+az webapp deploy -g oneday-rg -n <APP_NAME> --src-path /tmp/oneday.zip --type zip
 ```
 
 배포 후 OpenAI 키 설정
@@ -113,7 +116,7 @@ AZURE_OPENAI_DEPLOYMENT="<DEPLOYMENT_NAME>"
 검증
 
 - API 헬스체크: `https://<APP_NAME>.azurewebsites.net/api/health`
-- 프론트 첫 접속 시 `?api_base=https://<APP_NAME>.azurewebsites.net`를 붙여 저장
+- 프론트 첫 접속 시 `?api_base=https://<APP_NAME>.azurewebsites.net`를 연결하면 브라우저에 저장
 
 ## 주요 기능
 

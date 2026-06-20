@@ -1,6 +1,22 @@
 # OneDay - 개인 생산성 향상 앱
 
-## 📱 프로젝트 개요
+## � 제작 배경
+
+> "생각이 너무 많아서 아무것도 못 하는 날이 반복됐다."
+
+하루에 해야 할 일이 머릿속에 너무 많이 쌓이면, 오히려 아무것도 시작하지 못하는 경험을 반복했습니다. 그래서 **하루에 딱 3개, 최소 1개만 실천해보자**는 생각에서 이 앱을 만들었습니다.
+
+### 기능을 추가한 이유
+
+**AI 우선순위 추천 기능**
+막상 3개를 정해놓아도 어떤 걸 먼저 해야 할지 잘못 선택하는 경우가 많았습니다. 내 상황을 말해주면 AI가 순서를 잡아주는 기능이 있으면 좋겠다고 생각했고, Copilot SDK를 활용해 구현했습니다.
+
+**히스토리 기능**
+오늘 잘 실천했는지를 눈으로 확인하고 싶었습니다. 며칠을 연속으로 달성했는지, 패턴이 어떤지를 보면 스스로 동기부여가 된다는 걸 알았기 때문입니다.
+
+---
+
+## �📱 프로젝트 개요
 
 **오늘 딱 이것만 투두 & AI 회고**
 
@@ -124,6 +140,9 @@ OneDay/
 3. 옵션: CORS, FORCE_AFTER_THREE_PM 설정
 
 ### Azure App Service 배포
+
+> ✅ **배포 완료**: [https://onedaygj0620.azurewebsites.net](https://onedaygj0620.azurewebsites.net)
+
 ```bash
 # 1. 리소스 생성
 az group create -n oneday-rg -l koreacentral
@@ -134,8 +153,9 @@ az webapp create -g oneday-rg -p oneday-plan -n <APP_NAME> --runtime "PYTHON|3.1
 az webapp config appsettings set -g oneday-rg -n <APP_NAME> \
   --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
 
-# 3. 배포
-az webapp deploy -g oneday-rg -n <APP_NAME> --src-path .
+# 3. zip 배포
+zip -r /tmp/oneday.zip . -x '.git/*' '.venv/*' '__pycache__/*' '*.pyc' 'oneday.db'
+az webapp deploy -g oneday-rg -n <APP_NAME> --src-path /tmp/oneday.zip --type zip
 
 # 4. OpenAI 키 설정
 az webapp config appsettings set -g oneday-rg -n <APP_NAME> \
@@ -184,7 +204,8 @@ day_key, content, analysis, cheer_message
 
 - ✅ 투두 CRUD
 - ✅ 우선순위 선택 (localStorage 저장)
-- ✅ AI 우선순위 추천 + 폴백
+- ✅ AI 우선순위 추천 + 폴백 + 입력 문구에 따른 순위 변경
+- ✅ 우선순위 추천 전후 비교 애니메이션
 - ✅ 회고 작성 & 저장
 - ✅ AI 감정 분석 (키워드 감지)
 - ✅ 히스토리 & 연속 달성 추적
@@ -193,9 +214,10 @@ day_key, content, analysis, cheer_message
 - ✅ XSS 방어
 - ✅ 환경변수 설정
 - ✅ Copilot SDK (Semantic Kernel) 통합
-- ✅ 배포 준비 (Procfile, .env.example, README)
+- ✅ Azure App Service 배포 완료 (onedaygj0620.azurewebsites.net)
 - ✅ 모든 보안 경고 표시
 - ✅ 비활성화 버튼 스타일 개선
+- ✅ AI 사용 여부 출처 표시 ("AI가 분석한 추천이에요." / "기본 추천")
 
 ---
 
