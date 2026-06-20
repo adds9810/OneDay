@@ -85,7 +85,7 @@ function renderRetrospective(retrospective) {
     }
 
     const data = await request(`/api/history/${encodeURIComponent(day)}`);
-    detailTitle.textContent = `${data.day_key} 기록 상세`;
+    detailTitle.textContent = `${data.day_key} 실행 기록 상세`;
     todoSummary.textContent = `할 일 ${data.todo_completed}/${data.todo_total} 완료`;
 
     renderTodos(data.todos || []);

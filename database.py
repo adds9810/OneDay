@@ -138,6 +138,17 @@ def update_todo(todo_id: int, completed: bool) -> Optional[dict]:
     return get_todo(todo_id)
 
 
+def update_todo_content(todo_id: int, content: str) -> Optional[dict]:
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE todos SET content = ? WHERE id = ? AND day_key = ?",
+            (content, todo_id, today_key()),
+        )
+        conn.commit()
+
+    return get_todo(todo_id)
+
+
 def save_retrospective(content: str, analysis: str, cheer_message: str) -> dict:
     with _connect() as conn:
         conn.execute(

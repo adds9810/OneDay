@@ -3,13 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OneDay - 오늘 딱 3개</title>
+    <title>OneDay - 오늘의 실행</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
     <main class="container">
       <header class="hero">
-        <h1>OneDay</h1>
+        <div class="hero-top">
+          <h1>OneDay</h1>
+          <p id="todayDate" class="hero-date"></p>
+        </div>
         <p>오늘 딱 필요한 일 1~3개만 끝내고, 저녁에 회고를 남겨요.</p>
         <a class="nav-link" href="./history.html">히스토리 보기</a>
       </header>
@@ -30,7 +33,7 @@
 
       <section class="card">
         <div class="card-head">
-          <h2>오늘의 투두</h2>
+          <h2>오늘의 실행 계획</h2>
           <span id="todoCount" class="badge">0 / 3</span>
         </div>
 
@@ -44,12 +47,16 @@
           />
           <button type="submit">추가</button>
         </form>
+        <p class="form-hint">
+          오늘의 할 일은 삭제 대신 수정 중심으로 관리돼요. 꼭 해야 할 일을
+          신중하게 적어 주세요.
+        </p>
 
         <ul id="todoList" class="todo-list"></ul>
       </section>
 
       <section class="card">
-        <h2>오후 3시 이후 코칭</h2>
+        <h2>오후 점검 및 AI 조언</h2>
         <p id="timeGateNotice" class="time-note"></p>
 
         <div id="afternoonPanel" hidden>

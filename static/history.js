@@ -1,6 +1,8 @@
 const API_BASE = "http://localhost:8080";
 
 const streakBox = document.querySelector("#streakBox");
+const streakAdvice = document.querySelector("#streakAdvice");
+const streakAdviceText = document.querySelector("#streakAdviceText");
 const historyList = document.querySelector("#historyList");
 const notice = document.querySelector("#notice");
 
@@ -85,6 +87,14 @@ function renderHistory(days) {
     const data = await request("/api/history");
     const streakIcon = data.streak_days > 0 ? "🔥" : "🌱";
     streakBox.textContent = `${streakIcon} 연속 달성 ${data.streak_days}일`;
+
+    if (data.streak_ai_recommendation) {
+      streakAdvice.hidden = false;
+      streakAdviceText.textContent = data.streak_ai_recommendation;
+    } else {
+      streakAdvice.hidden = true;
+    }
+
     renderHistory(data.days || []);
     showNotice("히스토리를 불러왔습니다.");
   } catch (error) {

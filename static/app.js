@@ -25,6 +25,7 @@ const retrospectiveResult = document.querySelector("#retrospectiveResult");
 const analysisText = document.querySelector("#analysisText");
 const cheerText = document.querySelector("#cheerText");
 const notice = document.querySelector("#notice");
+const todayDate = document.querySelector("#todayDate");
 
 let currentTodos = [];
 
@@ -84,15 +85,60 @@ function renderTodos(todos) {
     state.className = "pill";
     state.textContent = todo.completed ? "완료" : "진행중";
 
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "todo-edit-btn";
+    editButton.textContent = "수정";
+    editButton.addEventListener("click", async () => {
+      try {
+        const nextContent = window.prompt("할 일을 수정해 주세요.", todo.content);
+        if (nextContent === null) {
+          return;
+        }
+
+        const trimmed = nextContent.trim();
+        if (!trimmed) {
+          showNotice("수정할 내용을 입력해 주세요.", "error");
+          return;
+        }
+
+        await request(`/api/todos/${todo.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ content: trimmed }),
+        });
+
+        await loadTodos();
+        showNotice("할 일을 수정했습니다.");
+      } catch (error) {
+        showNotice(error.message, "error");
+      }
+    });
+
     li.appendChild(checkbox);
     li.appendChild(text);
     li.appendChild(state);
+    li.appendChild(editButton);
     todoList.appendChild(li);
   }
 }
 
 function isAfterThreePm() {
   return new Date().getHours() >= 15;
+}
+
+function renderTodayDate() {
+  if (!todayDate) {
+    return;
+  }
+
+  const formatted = new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  }).format(new Date());
+
+  todayDate.textContent = `오늘 날짜: ${formatted}`;
 }
 
 function renderTimeGate() {
@@ -279,6 +325,7 @@ carryoverSkipBtn?.addEventListener("click", async () => {
 
 (async function bootstrap() {
   try {
+    renderTodayDate();
     renderTimeGate();
     await loadTodos();
     await loadCarryoverPrompt();

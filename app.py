@@ -4,7 +4,11 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from ai_service import analyze_retrospective, generate_afternoon_advice
+from ai_service import (
+    analyze_retrospective,
+    generate_afternoon_advice,
+    generate_streak_recommendation,
+)
 from database import (
     add_todo,
     apply_pending_decision,
@@ -18,6 +22,7 @@ from database import (
     init_db,
     save_retrospective,
     update_todo,
+    update_todo_content,
 )
 
 app = Flask(__name__)
@@ -93,14 +98,22 @@ def patch_todo(todo_id: int) -> Any:
             return jsonify({"error": "해당 투두를 찾을 수 없습니다."}), 404
 
         payload = request.get_json(silent=True) or {}
-        completed = payload.get("completed")
+        updated = existing
 
-        if completed is None:
+        if "content" in payload:
+            content = _safe_text(payload.get("content"), 120)
+            updated = update_todo_content(todo_id, content)
+            if updated is None:
+                return jsonify({"error": "해당 투두를 찾을 수 없습니다."}), 404
+
+        if "completed" in payload:
+            completed = bool(payload.get("completed"))
+            updated = update_todo(todo_id, completed)
+        elif "content" not in payload:
+            # 기존 동작을 유지하기 위해 값이 없으면 완료 상태를 토글합니다.
             completed = not existing["completed"]
-        else:
-            completed = bool(completed)
+            updated = update_todo(todo_id, completed)
 
-        updated = update_todo(todo_id, completed)
         return jsonify(updated)
     except Exception:
         return jsonify({"error": "투두 수정 중 오류가 발생했습니다."}), 500
@@ -144,7 +157,12 @@ def afternoon_advice() -> Any:
 
         payload = request.get_json(silent=True) or {}
         advice_input = _safe_text(payload.get("content"), 1000)
-        advice = generate_afternoon_advice(advice_input, get_todos())
+        retrospective_written = get_today_retrospective() is not None
+        advice = generate_afternoon_advice(
+            advice_input,
+            get_todos(),
+            retrospective_written,
+        )
         return jsonify({"advice": advice})
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
@@ -163,7 +181,12 @@ def get_retrospective_today() -> Any:
 @app.get("/api/history")
 def history() -> Any:
     try:
-        return jsonify(get_history(limit=60))
+        history_data = get_history(limit=60)
+        history_data["streak_ai_recommendation"] = generate_streak_recommendation(
+            history_data.get("streak_days", 0),
+            history_data.get("days", []),
+        )
+        return jsonify(history_data)
     except Exception:
         return jsonify({"error": "히스토리 조회 중 오류가 발생했습니다."}), 500
 
