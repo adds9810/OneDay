@@ -16,6 +16,8 @@ const afternoonPanel = document.querySelector("#afternoonPanel");
 
 const adviceForm = document.querySelector("#adviceForm");
 const adviceInput = document.querySelector("#adviceInput");
+const adviceSubmitBtn = document.querySelector("#adviceSubmitBtn");
+const adviceHint = document.querySelector("#adviceHint");
 const adviceResult = document.querySelector("#adviceResult");
 const adviceText = document.querySelector("#adviceText");
 
@@ -27,7 +29,14 @@ const cheerText = document.querySelector("#cheerText");
 const notice = document.querySelector("#notice");
 const todayDate = document.querySelector("#todayDate");
 
+// 모달 요소
+const editModal = document.querySelector("#editModal");
+const editInput = document.querySelector("#editInput");
+const editConfirmBtn = document.querySelector("#editConfirmBtn");
+const editCancelBtn = document.querySelector("#editCancelBtn");
+
 let currentTodos = [];
+let editingTodoId = null;
 
 function showNotice(message, type = "ok") {
   notice.textContent = message;
@@ -51,10 +60,26 @@ async function request(path, options = {}) {
   return data;
 }
 
+function updateAdviceButton(count) {
+  if (!adviceSubmitBtn) return;
+  if (count >= 2) {
+    adviceSubmitBtn.disabled = false;
+    if (adviceHint)
+      adviceHint.textContent =
+        "할 일 목록을 분석해서 추천 순서를 알려드릴게요.";
+  } else {
+    adviceSubmitBtn.disabled = true;
+    if (adviceHint)
+      adviceHint.textContent =
+        "할 일을 2개 이상 등록하면 AI 우선순위 추천을 받을 수 있어요.";
+  }
+}
+
 function renderTodos(todos) {
   currentTodos = todos;
   todoList.innerHTML = "";
   todoCount.textContent = `${todos.length} / 3`;
+  updateAdviceButton(todos.length);
 
   for (const todo of todos) {
     const li = document.createElement("li");
@@ -89,29 +114,11 @@ function renderTodos(todos) {
     editButton.type = "button";
     editButton.className = "todo-edit-btn";
     editButton.textContent = "수정";
-    editButton.addEventListener("click", async () => {
-      try {
-        const nextContent = window.prompt("할 일을 수정해 주세요.", todo.content);
-        if (nextContent === null) {
-          return;
-        }
-
-        const trimmed = nextContent.trim();
-        if (!trimmed) {
-          showNotice("수정할 내용을 입력해 주세요.", "error");
-          return;
-        }
-
-        await request(`/api/todos/${todo.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ content: trimmed }),
-        });
-
-        await loadTodos();
-        showNotice("할 일을 수정했습니다.");
-      } catch (error) {
-        showNotice(error.message, "error");
-      }
+    editButton.addEventListener("click", () => {
+      editingTodoId = todo.id;
+      editInput.value = todo.content;
+      editModal.hidden = false;
+      editInput.focus();
     });
 
     li.appendChild(checkbox);
@@ -123,7 +130,7 @@ function renderTodos(todos) {
 }
 
 function isAfterThreePm() {
-  return new Date().getHours() >= 15;
+  return new Date().getHours() >= 13; // 임시: 확인용 (원래 15)
 }
 
 function renderTodayDate() {
@@ -247,20 +254,16 @@ adviceForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   try {
-    if (!isAfterThreePm()) {
-      showNotice("AI 조언은 오후 3시 이후에 요청할 수 있어요.", "error");
-      return;
-    }
-    if (currentTodos.length < 1) {
-      showNotice("조언을 받으려면 투두를 최소 1개 등록해 주세요.", "error");
+    if (currentTodos.length < 2) {
+      showNotice(
+        "우선순위 추천은 할 일을 2개 이상 등록해야 받을 수 있어요.",
+        "error",
+      );
       return;
     }
 
-    const content = adviceInput.value.trim();
-    if (!content) {
-      showNotice("조언 요청 내용을 입력해 주세요.", "error");
-      return;
-    }
+    // 상황 메모는 선택 사항이므로 비어있어도 전송합니다.
+    const content = adviceInput ? adviceInput.value.trim() : "";
 
     const data = await request("/api/advice", {
       method: "POST",
@@ -269,7 +272,7 @@ adviceForm?.addEventListener("submit", async (event) => {
 
     adviceResult.hidden = false;
     adviceText.textContent = data.advice;
-    showNotice("AI 조언을 받았습니다.");
+    showNotice("우선순위 추천을 받았습니다.");
   } catch (error) {
     showNotice(error.message, "error");
   }
@@ -320,6 +323,57 @@ carryoverSkipBtn?.addEventListener("click", async () => {
     await decideCarryover("skip");
   } catch (error) {
     showNotice(error.message, "error");
+  }
+});
+
+// 모달 버튼 이벤트 리스너
+editConfirmBtn?.addEventListener("click", async () => {
+  try {
+    const content = editInput.value.trim();
+    if (!content) {
+      showNotice("수정할 내용을 입력해 주세요.", "error");
+      return;
+    }
+
+    if (editingTodoId === null) {
+      showNotice("오류가 발생했습니다.", "error");
+      return;
+    }
+
+    await request(`/api/todos/${editingTodoId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ content }),
+    });
+
+    editModal.hidden = true;
+    editingTodoId = null;
+    editInput.value = "";
+    await loadTodos();
+    showNotice("할 일을 수정했습니다.");
+  } catch (error) {
+    showNotice(error.message, "error");
+  }
+});
+
+editCancelBtn?.addEventListener("click", () => {
+  editModal.hidden = true;
+  editingTodoId = null;
+  editInput.value = "";
+});
+
+// 모달 바깥 클릭 시 닫기
+editModal?.addEventListener("click", (event) => {
+  if (event.target === editModal) {
+    editModal.hidden = true;
+    editingTodoId = null;
+    editInput.value = "";
+  }
+});
+
+// Enter 키로 수정
+editInput?.addEventListener("keypress", async (event) => {
+  if (event.key === "Enter") {
+    editConfirmBtn?.click();
   }
 });
 

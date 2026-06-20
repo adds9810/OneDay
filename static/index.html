@@ -53,30 +53,34 @@
         </p>
 
         <ul id="todoList" class="todo-list"></ul>
+
+        <!-- 우선순위 추천: 시간 제한 없이 투두 2개 이상이면 활성화됩니다. -->
+        <form id="adviceForm" class="stack-form">
+          <p id="adviceHint" class="form-hint">
+            할 일을 2개 이상 등록하면 AI 우선순위 추천을 받을 수 있어요.
+          </p>
+          <textarea
+            id="adviceInput"
+            rows="2"
+            maxlength="200"
+            placeholder="💬 참고할 상황이 있으면 적어주세요 (선택)  예: 오후에 중요한 회의가 있어요"
+          ></textarea>
+          <button type="submit" id="adviceSubmitBtn" disabled>
+            우선순위 추천받기
+          </button>
+        </form>
+
+        <div id="adviceResult" class="result" hidden>
+          <h3>AI 우선순위 추천</h3>
+          <p id="adviceText"></p>
+        </div>
       </section>
 
       <section class="card">
-        <h2>오후 점검 및 AI 조언</h2>
+        <h2>회고 & AI 조언</h2>
         <p id="timeGateNotice" class="time-note"></p>
 
         <div id="afternoonPanel" hidden>
-          <form id="adviceForm" class="stack-form">
-            <label for="adviceInput">AI에게 조언 받기</label>
-            <textarea
-              id="adviceInput"
-              rows="3"
-              maxlength="1000"
-              placeholder="예: 남은 업무 우선순위를 어떻게 잡으면 좋을까?"
-              required
-            ></textarea>
-            <button type="submit">조언 받기</button>
-          </form>
-
-          <div id="adviceResult" class="result" hidden>
-            <h3>AI 조언</h3>
-            <p id="adviceText"></p>
-          </div>
-
           <form id="retrospectiveForm" class="stack-form">
             <label for="retrospectiveInput">회고하기</label>
             <textarea
@@ -86,7 +90,7 @@
               placeholder="오늘 무엇이 잘 되었고, 무엇이 어려웠는지 자유롭게 적어보세요."
               required
             ></textarea>
-            <button type="submit">회고 조언 받기</button>
+            <button type="submit">하루 정리하기</button>
           </form>
 
           <div id="retrospectiveResult" class="result" hidden>
@@ -99,6 +103,23 @@
       </section>
 
       <p id="notice" class="notice" aria-live="polite"></p>
+
+      <!-- 투두 수정 모달 -->
+      <div id="editModal" class="modal" hidden>
+        <div class="modal-content">
+          <h3>할 일 수정</h3>
+          <input
+            id="editInput"
+            type="text"
+            maxlength="120"
+            placeholder="수정할 내용을 입력해 주세요"
+          />
+          <div class="modal-actions">
+            <button id="editConfirmBtn" type="button">수정</button>
+            <button id="editCancelBtn" type="button" class="secondary">취소</button>
+          </div>
+        </div>
+      </div>
     </main>
 
     <script src="./app.js"></script>

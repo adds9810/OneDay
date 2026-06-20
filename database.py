@@ -50,6 +50,16 @@ def init_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS streak_recommendations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                streak_days INTEGER NOT NULL,
+                recommendation_text TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
         conn.commit()
 
 
@@ -147,6 +157,59 @@ def update_todo_content(todo_id: int, content: str) -> Optional[dict]:
         conn.commit()
 
     return get_todo(todo_id)
+
+
+def save_streak_recommendation(streak_days: int, recommendation_text: str) -> dict:
+    """연속 달성 추천을 저장합니다."""
+    with _connect() as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO streak_recommendations(streak_days, recommendation_text)
+            VALUES (?, ?)
+            """,
+            (streak_days, recommendation_text),
+        )
+        conn.commit()
+        recommendation_id = cursor.lastrowid
+
+        row = conn.execute(
+            """
+            SELECT id, streak_days, recommendation_text, created_at
+            FROM streak_recommendations
+            WHERE id = ?
+            """,
+            (recommendation_id,),
+        ).fetchone()
+
+    return {
+        "id": row["id"],
+        "streak_days": row["streak_days"],
+        "recommendation_text": row["recommendation_text"],
+        "created_at": row["created_at"],
+    }
+
+
+def get_latest_streak_recommendation() -> Optional[dict]:
+    """최신 연속 달성 추천을 조회합니다."""
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT id, streak_days, recommendation_text, created_at
+            FROM streak_recommendations
+            ORDER BY created_at DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return {
+        "id": row["id"],
+        "streak_days": row["streak_days"],
+        "recommendation_text": row["recommendation_text"],
+        "created_at": row["created_at"],
+    }
 
 
 def save_retrospective(content: str, analysis: str, cheer_message: str) -> dict:
@@ -389,12 +452,25 @@ def _has_retrospective(day_key_value: str) -> bool:
 
 
 def _compute_streak(days_desc: list[dict]) -> int:
-    streak = 0
-    for day in days_desc:
+    # 첫 번째 완전 달성인 날부터 시작 (미완료 날은 제외)
+    start_idx = -1
+    for i, day in enumerate(days_desc):
         if day["achievement"]:
+            start_idx = i
+            break
+    
+    if start_idx == -1:
+        # 완전 달성한 날이 없으면 0 반환
+        return 0
+    
+    # start_idx부터 연속으로 achievement가 true인 것만 셈
+    streak = 0
+    for i in range(start_idx, len(days_desc)):
+        if days_desc[i]["achievement"]:
             streak += 1
-            continue
-        break
+        else:
+            break
+    
     return streak
 
 

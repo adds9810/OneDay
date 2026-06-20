@@ -15,12 +15,14 @@ from database import (
     count_todos,
     get_history,
     get_history_detail,
+    get_latest_streak_recommendation,
     get_pending_from_yesterday,
     get_today_retrospective,
     get_todo,
     get_todos,
     init_db,
     save_retrospective,
+    save_streak_recommendation,
     update_todo,
     update_todo_content,
 )
@@ -43,7 +45,7 @@ def _safe_text(value: Any, max_len: int) -> str:
 
 
 def _after_three_pm() -> bool:
-    return datetime.now().hour >= 15
+    return datetime.now().hour >= 13  # 임시: 확인용 (원래 15)
 
 
 @app.get("/api/health")
@@ -115,6 +117,8 @@ def patch_todo(todo_id: int) -> Any:
             updated = update_todo(todo_id, completed)
 
         return jsonify(updated)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
     except Exception:
         return jsonify({"error": "투두 수정 중 오류가 발생했습니다."}), 500
 
@@ -149,20 +153,16 @@ def create_retrospective() -> Any:
 @app.post("/api/advice")
 def afternoon_advice() -> Any:
     try:
-        if not _after_three_pm():
-            return jsonify({"error": "AI 조언은 오후 3시 이후에 요청할 수 있습니다."}), 400
-
-        if count_todos() < 1:
-            return jsonify({"error": "조언 전 오늘의 투두를 최소 1개 등록해 주세요."}), 400
+        todos = get_todos()
+        if len(todos) < 2:
+            return jsonify({"error": "우선순위 추천은 할 일을 2개 이상 등록해야 받을 수 있습니다."}), 400
 
         payload = request.get_json(silent=True) or {}
-        advice_input = _safe_text(payload.get("content"), 1000)
+        # 상황 메모는 선택 사항이므로 빈 값도 허용합니다.
+        context = str(payload.get("content") or "").strip()[:200]
+
         retrospective_written = get_today_retrospective() is not None
-        advice = generate_afternoon_advice(
-            advice_input,
-            get_todos(),
-            retrospective_written,
-        )
+        advice = generate_afternoon_advice(context, todos, retrospective_written)
         return jsonify({"advice": advice})
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
@@ -182,10 +182,26 @@ def get_retrospective_today() -> Any:
 def history() -> Any:
     try:
         history_data = get_history(limit=60)
-        history_data["streak_ai_recommendation"] = generate_streak_recommendation(
-            history_data.get("streak_days", 0),
-            history_data.get("days", []),
-        )
+        streak_days = history_data.get("streak_days", 0)
+        
+        # 캐시된 추천이 있는지 확인
+        cached = get_latest_streak_recommendation()
+        if cached and cached["streak_days"] == streak_days:
+            # 같은 연속 달성 일수의 추천이 있으면 사용
+            history_data["streak_ai_recommendation"] = cached["recommendation_text"]
+        elif streak_days > 0:
+            # 없으면 AI에게 새로 요청
+            recommendation = generate_streak_recommendation(
+                streak_days,
+                history_data.get("days", []),
+            )
+            if recommendation:
+                # AI 응답을 저장
+                save_streak_recommendation(streak_days, recommendation)
+                history_data["streak_ai_recommendation"] = recommendation
+        else:
+            history_data["streak_ai_recommendation"] = None
+        
         return jsonify(history_data)
     except Exception:
         return jsonify({"error": "히스토리 조회 중 오류가 발생했습니다."}), 500
